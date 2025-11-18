@@ -1,0 +1,17 @@
+{% block content %}
+<h2>Check Weather</h2>
+
+<form method="post">
+    {% csrf_token %}
+    <input type="text" name="city" placeholder="City name" required>
+    <select name="units">
+        <option value="metric">Celsius</option>
+        <option value="imperial">Fahrenheit</option>
+    </select>
+    <button type="submit">Get Weather</button>
+</form>
+
+{% if error %}
+<p><strong>Error:</strong> {{ error }}</p>
+{% endif %}
+{% endblock %}

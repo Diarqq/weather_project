@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Query History</h2>
+<form method="get">
+    <input type="text" name="city" placeholder="filter by city" value="{{city_filter}}">
+    <input type="date" name="date_from" value="{{date_to}}" placeholder="From date">
+    <input type="date" name="date_to" value="{{date_to}}" placeholder="To date">
+    <button type="submit">Filter</button>
+    <a href="?">Clear</a>
+</form>
+
+
+
+{% if queries %}
+<table border="1">
+    <tr>
+        <th>City</th>
+        <th>Temp</th>
+        <th>Description</th>
+        <th>Time</th>
+        <th>Cache</th>
+    </tr>
+    {% for query in queries %}
+    <tr>
+        <td>{{ query.city_name }}</td>
+        <td>{{ query.temperature }}°</td>
+        <td>{{ query.weather_description }}</td>
+        <td>{{ query.timestamp|date:"M d H:i" }}</td>
+        <td>{% if query.served_from_cache %}Yes{% else %}No{% endif %}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+<div>
+    {% if page_obj.has_previous %}
+        <a href="?page=1{% if city_filter %}&city={{ city_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">First</a>
+        <a href="?page={{ page_obj.previous_page_number }}{% if city_filter %}&city={{ city_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">Previous</a>
+    {% endif %}
+
+    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if city_filter %}&city={{ city_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">Next</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}{% if city_filter %}&city={{ city_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">Last</a>
+    {% endif %}
+</div>
+
+
+{% else %}
+<p>No queries yet.</p>
+{% endif %}
+
+<p><a href="/">Back to search</a></p>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Weather in {{ city }}</h2>
+
+<p><strong>Temperature:</strong> {{ weather_data.temperature }}°</p>
+<p><strong>Description:</strong> {{ weather_data.weather_description }}</p>
+
+{% if weather_data.served_from_cache %}
+<p><em>(from cache)</em></p>
+{% endif %}
+
+<p>
+    <a href="/">Back</a> |
+    <a href="/history/">History</a>
+</p>
+{% endblock %}
