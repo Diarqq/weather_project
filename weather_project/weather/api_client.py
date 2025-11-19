@@ -3,22 +3,22 @@ from django.conf import settings
 import logging
 import time
 
-logger = logging.getLogger('weather')
+logger = logging.getLogger("weather")
+
 
 class WeatherAPIClient:
     def __init__(self):
-        self.base_url = 'https://api.openweathermap.org/data/2.5/weather'
+        self.base_url = "https://api.openweathermap.org/data/2.5/weather"
         self.api_key = settings.WEATHER_API_KEY
 
-    def get_weather(self, city: str, units: str = 'metric'):
+    def get_weather(self, city: str, units: str = "metric"):
         start_time = time.time()
         try:
             response = requests.get(
                 self.base_url,
-                params={'q': city, 'units': units, 'appid': self.api_key},
-                timeout=10
+                params={"q": city, "units": units, "appid": self.api_key},
+                timeout=10,
             )
-
 
             if response.status_code == 200:
                 data = response.json()
@@ -34,4 +34,5 @@ class WeatherAPIClient:
         finally:
             duration = time.time() - start_time
             logger.info(
-                f"external_api_latency service=openweathermap city={city} duration={duration:.3f}s ")
+                f"external_api_latency service=openweathermap city={city} duration={duration:.3f}s "
+            )

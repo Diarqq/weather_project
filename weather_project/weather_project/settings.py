@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 import environ
+
 env = environ.Env()
 environ.Env.read_env()
 
@@ -24,7 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = "django-insecure-3jjvi0mwwlm3z&i8zi=0z496x^(%2l696n1qlux=!kze$9)bj%"
-WEATHER_API_KEY = env.str('WEATHER_API_KEY')
+WEATHER_API_KEY = env.str("WEATHER_API_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -41,9 +42,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    'django_ratelimit',
-
-    'weather.apps.WeatherConfig',
+    "django_ratelimit",
+    "weather.apps.WeatherConfig",
 ]
 
 MIDDLEWARE = [
@@ -61,7 +61,7 @@ ROOT_URLCONF = "weather_project.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / 'templates'],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -80,9 +80,7 @@ WSGI_APPLICATION = "weather_project.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-DATABASES = {
-    'default': env.db('DATABASE_URL')
-}
+DATABASES = {"default": env.db("DATABASE_URL")}
 
 
 # Password validation
@@ -115,7 +113,7 @@ USE_I18N = True
 
 USE_TZ = True
 
-RATE_LIMIT_REQUESTS = 30  # запросов
+RATE_LIMIT_REQUESTS = 30
 RATE_LIMIT_WINDOW = 60
 
 # Static files (CSS, JavaScript, Images)
@@ -130,36 +128,36 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': 'redis://127.0.0.1:6379/1',
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        }
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
     }
 }
 
 LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'file': {
-            'level': 'INFO',
-            'class': 'logging.FileHandler',
-            'filename': 'weather.log',
-            'formatter': 'simple',
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "file": {
+            "level": "INFO",
+            "class": "logging.FileHandler",
+            "filename": "weather.log",
+            "formatter": "simple",
         },
     },
-    'formatters': {
-        'simple': {
-            'format': '{levelname} {message}',
-            'style': '{',
+    "formatters": {
+        "simple": {
+            "format": "{levelname} {message}",
+            "style": "{",
         },
     },
-    'loggers': {
-        'weather': {
-            'handlers': ['file'],
-            'level': 'INFO',
+    "loggers": {
+        "weather": {
+            "handlers": ["file"],
+            "level": "INFO",
         },
     },
 }
