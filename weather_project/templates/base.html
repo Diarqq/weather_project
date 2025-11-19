@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{% block title %}Weather App{% endblock %}</title>
+</head>
+<body>
+    <h1>Weather App</h1>
+    <div>
+        <a href="/">Home</a> |
+        <a href="/history/">History</a>
+    </div>
+    <hr>
+
+    {% block content %}
+    {% endblock %}
+</body>
+</html>

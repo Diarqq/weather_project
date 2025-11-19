@@ -41,10 +41,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    # Third party apps
-    #'django_ratelimit',
+    'django_ratelimit',
 
-    # Local apps
     'weather.apps.WeatherConfig',
 ]
 
@@ -117,6 +115,8 @@ USE_I18N = True
 
 USE_TZ = True
 
+RATE_LIMIT_REQUESTS = 30  # запросов
+RATE_LIMIT_WINDOW = 60
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/

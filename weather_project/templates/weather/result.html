@@ -3,7 +3,6 @@
 {% block content %}
 <h2>Weather in {{ city }}</h2>
 
-<p>DEBUG: Weather data exists? {% if weather_data %}YES{% else %}NO{% endif %}</p>
 
 {% if weather_data %}
 <p><strong>Temperature:</strong> {{ weather_data.temperature }}°</p>

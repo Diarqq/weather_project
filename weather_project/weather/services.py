@@ -8,24 +8,33 @@ class WeatherService:
         self.cache = WeatherCache()
 
     def get_weather(self, city: str, units: str, ip_address: str = None):
-        print(f"=== DEBUG: Searching for city: '{city}', units: {units}")
+        print(f"=== DEBUG SERVICE: Starting search for '{city}'")
+
+        # 1. Проверяем кэш
         cached_data = self.cache.get_cached_weather(city, units)
-        print(f"=== DEBUG: Cached data: {cached_data}")
+        print(f"=== DEBUG SERVICE: Cache result: {cached_data}")
+
         if cached_data:
-            print("=== DEBUG: Using cached data")
+            print("=== DEBUG SERVICE: Using cached data")
             return self._create_cached_response(cached_data, ip_address)
-        print("=== DEBUG: Fetching from API...")
+
+        # 2. Запрашиваем у API
+        print("=== DEBUG SERVICE: Fetching from API...")
         api_data = self.api_client.get_weather(city, units)
-        print(f"=== DEBUG: API response: {api_data}")
+        print(f"=== DEBUG SERVICE: API data: {api_data}")
+
         if api_data:
-            print("=== DEBUG: API data received")
-            return self._create_api_response(api_data, units, ip_address)
-        print("=== DEBUG: No data found")
+            print("=== DEBUG SERVICE: Creating API response...")
+            result = self._create_api_response(api_data, units, ip_address)
+            print(f"=== DEBUG SERVICE: Created result: {result}")
+            return result
+
+        print("=== DEBUG SERVICE: No data found")
         return None
 
 
     def _create_cached_response(self, cached_query, ip_address):
-        WeatherQuery.objects.create(
+        new_query = WeatherQuery.objects.create(
             city_name=cached_query.city_name,
             temperature=cached_query.temperature,
             weather_description=cached_query.weather_description,
@@ -34,12 +43,15 @@ class WeatherService:
             ip_address=ip_address
         )
 
-        return {
-            'temperature': cached_query.temperature,
-            'weather_description': cached_query.weather_description,
-            'city': cached_query.city_name,
+        result = {
+            'temperature': new_query.temperature,
+            'weather_description': new_query.weather_description,
+            'city': new_query.city_name,
             'served_from_cache': True
         }
+
+        print(f"=== DEBUG: Cached response data: {result}")
+        return result
 
 
     def _create_api_response(self, api_data, units, ip_address):
