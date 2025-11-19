@@ -2,6 +2,8 @@
 
 A Django-based weather application that fetches current weather data from OpenWeatherMap API.
 
+Please write the names of cities in English!
+
 ## Features
 
 - 🌤️ Real-time weather data from OpenWeatherMap
