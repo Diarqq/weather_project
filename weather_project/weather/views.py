@@ -1,5 +1,6 @@
 import csv
 import time
+import logging
 
 from django.db import connection
 from django.shortcuts import render
@@ -11,6 +12,8 @@ from django.http import JsonResponse, HttpResponse
 from .models import WeatherQuery
 from .services import WeatherService
 
+
+logger = logging.getLogger('weather')
 def get_client_ip(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
@@ -21,6 +24,7 @@ def get_client_ip(request):
 
 @ratelimit(key='ip', rate='30/m', method='POST')
 def weather_query(request):
+    logger.info(f"request_start method={request.method} path={request.path} ")
     if getattr(request, 'limited', False):
         return render(request, 'weather/query.html', {
             'error': 'Rate limit exceeded. Please wait a minute.'
@@ -31,7 +35,7 @@ def weather_query(request):
         ip_address = get_client_ip(request)
 
         weather_data = WeatherService().get_weather(city, units, ip_address)
-        print(f"=== DEBUG: Weather data for template: {weather_data}")
+
 
         if weather_data:
             return render(request, 'weather/result.html', {
@@ -42,11 +46,12 @@ def weather_query(request):
             return render(request, 'weather/query.html', {
                 'error': 'City not found or API error'
             })
-
+    logger.info(f"request_end method={request.method} path={request.path} ")
     return render(request, 'weather/query.html')
 
 @ratelimit(key='ip',rate='30/m',method='GET')
 def weather_api(request):
+    logger.info(f"request_start method={request.method} path={request.path} ")
     if getattr(request, 'limited', False):
         return JsonResponse({
             'error': 'Rate limit exceeded',
@@ -70,10 +75,13 @@ def weather_api(request):
             return JsonResponse({
                 'error':'City not found or API error'
             },status=404)
+    logger.info(f"request_end method={request.method} path={request.path} ")
     return JsonResponse({'error':'Method not allowed'},status=405)
 
 
 def query_history(request):
+    logger.info(f"request_start method={request.method} path={request.path} ")
+
     queries =WeatherQuery.objects.all().order_by('-timestamp')
 
     city_filter = request.GET.get('city','')
@@ -93,7 +101,7 @@ def query_history(request):
 
     cities = WeatherQuery.objects.values_list('city_name',flat=True).distinct()
 
-
+    logger.info(f"request_end method={request.method} path={request.path} ")
     return render(request,'weather/history.html',{
         'page_obj':page_obj,
         'queries':page_obj,
@@ -103,7 +111,10 @@ def query_history(request):
         'date_to': date_to,
     })
 
+
 def json_to_csv_converter(request):
+    logger.info(f"request_start method={request.method} path={request.path} ip={client_ip}")
+
     if request.method == 'GET':
         queries = WeatherQuery.objects.all().order_by('-timestamp')
         city_filter = request.GET.get('city', '')
@@ -125,25 +136,32 @@ def json_to_csv_converter(request):
             timestamp = queri.timestamp.strftime('%Y-%m-%d %H:%M:%S')
             writer.writerow([f'{queri.city_name}', f'{timestamp}', f'{queri.temperature}', f'{queri.weather_description}',f'{queri.units}',f'Served from cache - {queri.served_from_cache}'])
 
-
+        logger.info(f"request_end method={request.method} path={request.path} ")
         return response
 
 
-def health_cheсk(request):
-    try:
-        connection.ensure_connection()
-        db_healthy = True
-    except:
-        db_healthy =  False
-    try:
-        data = WeatherService().get_weather('Paris')
-        api_healthy = (data is not None)
-    except:
-        api_healthy = False
-    overall_status = "ok" if (db_healthy and api_healthy) else "error"
+def health_check(request):
+    logger.info(f"request_start method={request.method} path={request.path} ip={client_ip}")
 
-    return JsonResponse({
-        "status": overall_status,
-        "database": "healthy" if db_healthy else "unhealthy",
-        "api": "healthy" if api_healthy else "unhealthy"
-    })
+    if request.method == 'GET':
+        try:
+            connection.ensure_connection()
+            db_healthy = True
+        except Exception as e:
+            logger.error(f"error message='{str(e)}' city={city}")
+            db_healthy =  False
+        try:
+            data = WeatherService().get_weather('Paris','metric')
+            time.sleep(5)
+            api_healthy = (data is not None)
+        except Exception as e:
+            api_healthy = False
+            logger.error(f"error message='{str(e)}' city={city}")
+        overall_status = "ok" if (db_healthy and api_healthy) else "error"
+
+        logger.info(f"request_end method={request.method} path={request.path} ")
+        return JsonResponse({
+            "status": overall_status,
+            "database": "healthy" if db_healthy else "unhealthy",
+            "api": "healthy" if api_healthy else "unhealthy"
+        })

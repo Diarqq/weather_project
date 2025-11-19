@@ -25,23 +25,16 @@ class TestWeatherCache:
             served_from_cache=False
         )
         saved_query = WeatherQuery.objects.get(id=query.id)
-        print(f"=== DEBUG: Saved query: {saved_query.city_name}, {saved_query.temperature}")
 
         count = WeatherQuery.objects.count()
-        print(f"=== DEBUG: Total queries in DB: {count}")
 
-        print(f"=== DEBUG: Created query ID: {query.id}")
-        print(f"=== DEBUG: Query city: '{query.city_name}'")
-        print(f"=== DEBUG: Query timestamp: {query.timestamp}")
 
         service = WeatherService()
-        cached_data = service.cache.get_cached_weather("London", "metric")
+        cached_data = service.cache.get_cached_weather("London", "metric")logger = logging.getLogger('weather')
 
-        print(f"=== DEBUG: Cached data: {cached_data}")
 
         # Проверим что вообще есть в БД
         all_queries = WeatherQuery.objects.all()
-        print(f"=== DEBUG: All queries in DB: {list(all_queries)}")
 
         assert cached_data is not None
         assert cached_data.city_name == "London"

@@ -8,28 +8,20 @@ class WeatherService:
         self.cache = WeatherCache()
 
     def get_weather(self, city: str, units: str, ip_address: str = None):
-        print(f"=== DEBUG SERVICE: Starting search for '{city}'")
 
         # 1. Проверяем кэш
         cached_data = self.cache.get_cached_weather(city, units)
-        print(f"=== DEBUG SERVICE: Cache result: {cached_data}")
 
         if cached_data:
-            print("=== DEBUG SERVICE: Using cached data")
             return self._create_cached_response(cached_data, ip_address)
 
         # 2. Запрашиваем у API
-        print("=== DEBUG SERVICE: Fetching from API...")
         api_data = self.api_client.get_weather(city, units)
-        print(f"=== DEBUG SERVICE: API data: {api_data}")
 
         if api_data:
-            print("=== DEBUG SERVICE: Creating API response...")
             result = self._create_api_response(api_data, units, ip_address)
-            print(f"=== DEBUG SERVICE: Created result: {result}")
             return result
 
-        print("=== DEBUG SERVICE: No data found")
         return None
 
 
@@ -50,7 +42,6 @@ class WeatherService:
             'served_from_cache': True
         }
 
-        print(f"=== DEBUG: Cached response data: {result}")
         return result
 
 
