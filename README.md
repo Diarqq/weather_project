@@ -27,6 +27,8 @@ docker-compose up
 # Access the application
 open http://localhost:8000
 
+Note: Django logs will show http://0.0.0.0:8000 - this is normal container behavior.
+
 ## 🚀 API Endpoints
 
 ### Web Interface
