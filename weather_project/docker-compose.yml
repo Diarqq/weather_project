@@ -4,14 +4,16 @@ services:
   web:
     build: .
     command:
-          sh -c "python manage.py migrate &&
-          python manage.py runserver 0.0.0.0:8000"
+      sh -c "python manage.py makemigrations weather &&
+      python manage.py migrate &&
+      python manage.py runserver 0.0.0.0:8000"
     volumes:
       - .:/app
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgres://postgres:password@db:5432/weather_db
+      - DATABASE_URL=${DATABASE_URL}
+      - WEATHER_API_KEY=${WEATHER_API_KEY}
       - DEBUG=True
     depends_on:
       - db
