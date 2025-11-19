@@ -1,7 +1,13 @@
+import csv
+import time
+
+from django.db import connection
 from django.shortcuts import render
 from django.core.paginator import Paginator
-
-from django.http import JsonResponse
+from django_ratelimit.decorators import ratelimit
+from django_ratelimit.exceptions import Ratelimited
+from django.utils import timezone
+from django.http import JsonResponse, HttpResponse
 from .models import WeatherQuery
 from .services import WeatherService
 
@@ -72,14 +78,14 @@ def query_history(request):
 
     city_filter = request.GET.get('city','')
     if city_filter:
-        queries = queries.filter(city_name_icontains=city_filter)
+        queries = queries.filter(city_name__icontains=city_filter)
 
     date_from = request.GET.get('date_from','')
     date_to = request.GET.get('date_to','')
     if date_from:
-        queries = queries.filter(timestamp_date_gte=date_from)
+        queries = queries.filter(timestamp__date__gte=date_from)
     if date_to:
-        queries=queries.filter(timestamp_dtae_lte=date_to)
+        queries=queries.filter(timestamp__date__lte=date_to)
 
     paginator = Paginator(queries,10)
     page_number = request.GET.get('page',1)
@@ -98,3 +104,46 @@ def query_history(request):
     })
 
 def json_to_csv_converter(request):
+    if request.method == 'GET':
+        queries = WeatherQuery.objects.all().order_by('-timestamp')
+        city_filter = request.GET.get('city', '')
+        if city_filter:
+            queries = queries.filter(city_name__icontains=city_filter)
+
+        date_from = request.GET.get('date_from', '')
+        date_to = request.GET.get('date_to', '')
+        if date_from:
+            queries = queries.filter(timestamp__date__gte=date_from)
+        if date_to:
+            queries = queries.filter(timestamp__date__lte=date_to)
+
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="weather_history.csv"'
+        writer = csv.writer(response)
+        writer.writerow(['City', 'Temperature', 'Description', 'Units', 'Timestamp', 'From Cache'])
+        for queri in queries:
+            timestamp = queri.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+            writer.writerow([f'{queri.city_name}', f'{timestamp}', f'{queri.temperature}', f'{queri.weather_description}',f'{queri.units}',f'Served from cache - {queri.served_from_cache}'])
+
+
+        return response
+
+
+def health_cheсk(request):
+    try:
+        connection.ensure_connection()
+        db_healthy = True
+    except:
+        db_healthy =  False
+    try:
+        data = WeatherService().get_weather('Paris')
+        api_healthy = (data is not None)
+    except:
+        api_healthy = False
+    overall_status = "ok" if (db_healthy and api_healthy) else "error"
+
+    return JsonResponse({
+        "status": overall_status,
+        "database": "healthy" if db_healthy else "unhealthy",
+        "api": "healthy" if api_healthy else "unhealthy"
+    })
