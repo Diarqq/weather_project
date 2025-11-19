@@ -1,104 +1,95 @@
-from django.test import TestCase
-
 import pytest
-from django.test import RequestFactory
 from unittest.mock import Mock, patch
-from .models import WeatherQuery
-from .services import WeatherService
-from .api_client import WeatherAPIClient
-from .views import weather_api, get_client_ip
+from django.test import TestCase
+from weather.models import WeatherQuery
+from weather.services import WeatherService
+from weather.api_client import WeatherAPIClient
 from django.utils import timezone
 from datetime import timedelta
+from django.test import Client, RequestFactory
+from weather.views import weather_api
 import json
 
-
 @pytest.mark.django_db
-class TestWeatherCache:
-    def test_cache_reuse_within_5_minutes(self):
-        """Тест: кэш возвращает данные если запрос был менее 5 минут назад"""
-        # Создаем запись в БД (сейчас)
-        query = WeatherQuery.objects.create(
+class TestWeatherService(TestCase):
+    def setUp(self):
+        WeatherQuery.objects.all().delete()
+
+
+    @patch('weather.services.WeatherAPIClient')
+    def test_cache_reuse_within_5_minutes(self,MockAPIClient):
+        mock_client = MockAPIClient.return_value
+        mock_client.get_weather.return_value = None
+        WeatherQuery.objects.create(
             city_name="London",
-            temperature=15.5,
-            weather_description="clear sky",
+            temperature=15.0,
+            weather_description="test",
             units="metric",
             served_from_cache=False
         )
-        saved_query = WeatherQuery.objects.get(id=query.id)
-
-        count = WeatherQuery.objects.count()
-
-
         service = WeatherService()
-        cached_data = service.cache.get_cached_weather("London", "metric")logger = logging.getLogger('weather')
+        result = service.get_weather("London", "metric")
+        mock_client.get_weather.assert_not_called()
+        self.assertIsNotNone(result)
 
-
-        # Проверим что вообще есть в БД
-        all_queries = WeatherQuery.objects.all()
-
-        assert cached_data is not None
-        assert cached_data.city_name == "London"
-
-    def test_cache_expires_after_5_minutes(self):
-
+    @patch('weather.services.WeatherAPIClient')
+    def test_cache_expires_after_5_minutes(self, MockAPIClient):
+        mock_client = MockAPIClient.return_value
+        mock_client.get_weather.return_value = {
+            'name': 'London',
+            'main': {'temp': 20.0, 'humidity': 65, 'pressure': 1012},
+            'weather': [{'description': 'sunny'}]
+        }
 
         old_time = timezone.now() - timedelta(minutes=6)
-        WeatherQuery.objects.create(
-            city_name="London",
-            temperature=15.5,
-            weather_description="clear sky",
-            units="metric",
-            served_from_cache=False,
-            timestamp=old_time
+        old_query = WeatherQuery.objects.create(
+            city_name="London", temperature=15.0, weather_description="old_weather",
+            units="metric", served_from_cache=False
         )
+        old_query.timestamp = old_time
+        old_query.save()
 
         service = WeatherService()
-        cached_data = service.cache.get_cached_weather("London", "metric")
+        result = service.get_weather("London", "metric")
 
-        assert cached_data is None
+        mock_client.get_weather.assert_called_once_with("London", "metric")
+        self.assertEqual(result['temperature'], 20.0)
+        self.assertFalse(result['served_from_cache'])
 
-
-@pytest.mark.django_db
-class TestRateLimiting:
-    def test_rate_limit_blocks_excessive_requests(self):
-
-        factory = RequestFactory()
-
-
-        for i in range(31):
-            request = factory.get('/api/', {'city': 'London'})
-            request.META = {'REMOTE_ADDR': '192.168.1.1'}
-
-            response = weather_api(request)
+    def test_city_filter(self):
+        WeatherQuery.objects.create(city_name="London", temperature=15.0, weather_description="sunny", units="metric")
+        WeatherQuery.objects.create(city_name="Paris", temperature=18.0, weather_description="cloudy", units="metric")
 
 
-            if i < 30:
-                assert response.status_code in [200, 404, 400]
+        client = Client()
+        response = client.get('/history/?city=London')
 
-    def test_rate_limit_respects_different_ips(self):
-
-        factory = RequestFactory()
-
-
-        request1 = factory.get('/api/', {'city': 'London'})
-        request1.META = {'REMOTE_ADDR': '192.168.1.1'}
-        response1 = weather_api(request1)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "London")
+        self.assertNotContains(response, "Paris")
 
 
-        request2 = factory.get('/api/', {'city': 'Paris'})
-        request2.META = {'REMOTE_ADDR': '192.168.1.2'}
-        response2 = weather_api(request2)
+    def test_date_filter(self):
 
+        from datetime import datetime
 
-        assert response1.status_code in [200, 404, 400]
-        assert response2.status_code in [200, 404, 400]
+        WeatherQuery.objects.create(
+            city_name="Test", temperature=15.0, weather_description="test", units="metric",
+            timestamp=timezone.make_aware(datetime(2024, 1, 15))
+        )
+        WeatherQuery.objects.create(
+            city_name="Test", temperature=16.0, weather_description="test", units="metric",
+            timestamp=timezone.make_aware(datetime(2024, 1, 20))
+        )
 
+        from django.test import Client
+        client = Client()
+        response = client.get('/history/?date_from=2024-01-10&date_to=2024-01-18')
 
-class TestWeatherAPIClient:
+        assert response.status_code == 200
+
     @patch('weather.api_client.requests.get')
     def test_api_client_success(self, mock_get):
-
-
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
@@ -118,7 +109,6 @@ class TestWeatherAPIClient:
 
     @patch('weather.api_client.requests.get')
     def test_api_client_failure(self, mock_get):
-
         mock_response = Mock()
         mock_response.status_code = 404
         mock_get.return_value = mock_response
@@ -128,67 +118,43 @@ class TestWeatherAPIClient:
 
         assert result is None
 
-
-@pytest.mark.django_db
-class TestFilteringPagination:
-    def test_city_filter(self):
-
-        WeatherQuery.objects.create(city_name="London", temperature=15.0, weather_description="sunny", units="metric")
-        WeatherQuery.objects.create(city_name="Paris", temperature=18.0, weather_description="cloudy", units="metric")
-        WeatherQuery.objects.create(city_name="London", temperature=16.0, weather_description="rainy", units="metric")
-
-
-        from django.test import Client
-        client = Client()
-        response = client.get('/history/?city=London')
-
-        assert response.status_code == 200
-
-        if hasattr(response, 'context') and 'queries' in response.context:
-            queries = response.context['queries']
-            for query in queries:
-                assert 'London' in query.city_name
-
-    def test_date_filter(self):
-
-        from datetime import datetime
-
-
-        WeatherQuery.objects.create(
-            city_name="Test", temperature=15.0, weather_description="test", units="metric",
-            timestamp=timezone.make_aware(datetime(2024, 1, 15))
-        )
-        WeatherQuery.objects.create(
-            city_name="Test", temperature=16.0, weather_description="test", units="metric",
-            timestamp=timezone.make_aware(datetime(2024, 1, 20))
-        )
-
-        # Фильтруем по диапазону дат
-        from django.test import Client
-        client = Client()
-        response = client.get('/history/?date_from=2024-01-10&date_to=2024-01-18')
-
-        assert response.status_code == 200
-
-
-class TestIPAddress:
-    def test_get_client_ip_direct(self):
+    def test_our_code_handles_rate_limit(self):
 
         factory = RequestFactory()
-        request = factory.get('/')
-        request.META = {'REMOTE_ADDR': '192.168.1.100'}
+        request = factory.get('/api/', {'city': 'London'})
+        request.limited = True
+        response = weather_api(request)
 
-        ip = get_client_ip(request)
-        assert ip == '192.168.1.100'
+        self.assertEqual(response.status_code, 429)
+        response_data = json.loads(response.content)
+        self.assertIn('error', response_data)
 
-    def test_get_client_ip_forwarded(self):
+    def test_no_db_write_when_rate_limited(self):
+        initial_count = WeatherQuery.objects.count()
 
         factory = RequestFactory()
-        request = factory.get('/')
-        request.META = {
-            'HTTP_X_FORWARDED_FOR': '192.168.1.50, 10.0.0.1',
-            'REMOTE_ADDR': '192.168.1.100'
-        }
+        request = factory.get('/api/', {'city': 'London'})
+        request.limited = True
 
-        ip = get_client_ip(request)
-        assert ip == '192.168.1.50'
+
+        weather_api(request)
+
+        self.assertEqual(WeatherQuery.objects.count(), initial_count)
+
+    def test_pagination(self):
+        for i in range(15):
+            WeatherQuery.objects.create(
+                city_name=f"City{i}",
+                temperature=10 + i,
+                weather_description="test",
+                units="metric"
+            )
+
+        client = Client()
+        response = client.get('/history/')
+        self.assertEqual(response.status_code, 200)
+
+        self.assertEqual(len(response.context['queries']), 10)
+
+        response = client.get('/history/?page=2')
+        self.assertEqual(len(response.context['queries']), 5)
