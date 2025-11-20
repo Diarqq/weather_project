@@ -43,3 +43,6 @@ Note: Django logs will show http://0.0.0.0:8000 - this is normal container behav
 - `GET /api/?city=London&units=metric` - Get weather data
 - `GET /health/` - System health status
 
+### TESTS
+docker-compose up -d       
+docker-compose exec web python -m pytest -v
