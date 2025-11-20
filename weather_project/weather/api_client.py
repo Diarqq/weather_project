@@ -1,7 +1,8 @@
-import requests
-from django.conf import settings
 import logging
 import time
+
+import requests
+from django.conf import settings
 
 logger = logging.getLogger("weather")
 

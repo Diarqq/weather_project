@@ -1,14 +1,15 @@
-import pytest
+import json
+from datetime import timedelta
 from unittest.mock import Mock, patch
-from django.test import TestCase
+
+import pytest
+from django.test import Client, RequestFactory, TestCase
+from django.utils import timezone
+
+from weather.api_client import WeatherAPIClient
 from weather.models import WeatherQuery
 from weather.services import WeatherService
-from weather.api_client import WeatherAPIClient
-from django.utils import timezone
-from datetime import timedelta
-from django.test import Client, RequestFactory
 from weather.views import weather_api
-import json
 
 
 @pytest.mark.django_db

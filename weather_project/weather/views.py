@@ -1,17 +1,15 @@
 import csv
-import time
 import logging
+import time
 
-from django.db import connection
-from django.shortcuts import render
 from django.core.paginator import Paginator
+from django.db import connection
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import render
 from django_ratelimit.decorators import ratelimit
-from django_ratelimit.exceptions import Ratelimited
-from django.utils import timezone
-from django.http import JsonResponse, HttpResponse
+
 from .models import WeatherQuery
 from .services import WeatherService
-
 
 logger = logging.getLogger("weather")
 
@@ -125,10 +123,8 @@ def query_history(request):
     )
 
 
-def json_to_csv_converter(request):
-    logger.info(
-        f"request_start method={request.method} path={request.path} ip={client_ip}"
-    )
+def export_csv(request):
+    logger.info(f"request_start method={request.method} path={request.path} ")
 
     if request.method == "GET":
         queries = WeatherQuery.objects.all().order_by("-timestamp")
@@ -167,16 +163,14 @@ def json_to_csv_converter(request):
 
 
 def health_check(request):
-    logger.info(
-        f"request_start method={request.method} path={request.path} ip={client_ip}"
-    )
+    logger.info(f"request_start method={request.method} path={request.path} ")
 
     if request.method == "GET":
         try:
             connection.ensure_connection()
             db_healthy = True
         except Exception as e:
-            logger.error(f"error message='{str(e)}' city={city}")
+            logger.error(f"error message='{str(e)}'")
             db_healthy = False
         try:
             data = WeatherService().get_weather("Paris", "metric")
@@ -184,7 +178,7 @@ def health_check(request):
             api_healthy = data is not None
         except Exception as e:
             api_healthy = False
-            logger.error(f"error message='{str(e)}' city={city}")
+            logger.error(f"error message='{str(e)}' ")
         overall_status = "ok" if (db_healthy and api_healthy) else "error"
 
         logger.info(f"request_end method={request.method} path={request.path} ")
