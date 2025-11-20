@@ -23,6 +23,12 @@ Please write the names of cities in English!
 git clone https://github.com/Diarqq/weather_project
 cd weather_project TWO TIMES
 
+# Copy and edit the environment file
+cp .env.sample .env
+Edit .env and add your OpenWeatherMap API key:
+WEATHER_API_KEY=your_actual_api_key_here
+# Other variables are pre-configured for Docker
+
 # Start all services
 docker-compose up
 
