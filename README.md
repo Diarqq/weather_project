@@ -21,7 +21,7 @@ Please write the names of cities in English!
 ```bash
 # Clone the repository
 git clone https://github.com/Diarqq/weather_project
-cd weather_project
+cd weather_project TWO TIMES
 
 # Start all services
 docker-compose up
