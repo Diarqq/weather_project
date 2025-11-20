@@ -5,11 +5,12 @@ from unittest.mock import Mock, patch
 import pytest
 from django.test import Client, RequestFactory, TestCase
 from django.utils import timezone
-
+from datetime import datetime
 from weather.api_client import WeatherAPIClient
 from weather.models import WeatherQuery
 from weather.services import WeatherService
 from weather.views import weather_api
+from django.test import Client
 
 
 @pytest.mark.django_db
@@ -83,8 +84,6 @@ class TestWeatherService(TestCase):
 
     def test_date_filter(self):
 
-        from datetime import datetime
-
         WeatherQuery.objects.create(
             city_name="Test",
             temperature=15.0,
@@ -99,8 +98,6 @@ class TestWeatherService(TestCase):
             units="metric",
             timestamp=timezone.make_aware(datetime(2024, 1, 20)),
         )
-
-        from django.test import Client
 
         client = Client()
         response = client.get("/history/?date_from=2024-01-10&date_to=2024-01-18")
